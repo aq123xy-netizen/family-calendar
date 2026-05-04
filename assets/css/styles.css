@@ -8,6 +8,84 @@ body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.site-shell {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.25rem 0 3rem;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(38, 70, 83, 0.12);
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 32px rgba(31, 41, 51, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.site-brand-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, #0f766e, #60a5fa);
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.site-brand-text strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.site-brand-text span {
+  display: block;
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.site-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.site-link {
+  padding: 0.65rem 0.95rem;
+  border-radius: 999px;
+  color: #334155;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.14s ease, color 0.14s ease, transform 0.14s ease;
+}
+
+.site-link:hover {
+  background: rgba(255, 255, 255, 0.75);
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.site-link.is-active {
+  background: #0f172a;
+  color: #fff;
+}
+
 .hero {
   padding: 4rem 0 2rem;
 }
@@ -59,9 +137,50 @@ body {
   background: rgba(255, 255, 255, 0.45);
 }
 
+.page-hero {
+  padding: 1rem 0 2rem;
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  gap: 1.5rem;
+}
+
+.page-placeholder {
+  min-height: 360px;
+  padding: 2rem;
+}
+
+.module-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: #eef6ff;
+  color: #1d4ed8;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.idea-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.idea-item {
+  padding: 1rem 1.1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #f8fafc;
+}
+
 .calendar-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }
@@ -76,6 +195,7 @@ body {
 
 .calendar-shell {
   padding: 1rem;
+  width: 100%;
 }
 
 .calendar-toolbar {
@@ -84,6 +204,41 @@ body {
   justify-content: flex-end;
   align-items: center;
   gap: 0.75rem;
+}
+
+.calendar-filter-card {
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(38, 70, 83, 0.12);
+  border-radius: 1.1rem;
+  background: rgba(248, 250, 252, 0.92);
+}
+
+.calendar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.calendar-filter-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #dbe5ee;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.calendar-filter-icon,
+.legend-icon,
+.selected-event-icon,
+.user-profile-icon {
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.calendar-filter-option input {
+  margin: 0;
 }
 
 .calendar-sidebar-card {
@@ -100,6 +255,105 @@ body {
 
 #event-form-error {
   border-radius: 0.9rem;
+}
+
+#user-form-error {
+  border-radius: 0.9rem;
+}
+
+.user-theme-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 38px;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #dbe5ee;
+  border-radius: 0.8rem;
+  background: #fff;
+  color: #475569;
+}
+
+.color-palette,
+.icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.color-palette-button,
+.icon-picker-button {
+  border: 1px solid #dbe5ee;
+  background: #fff;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.color-palette-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  padding: 0;
+}
+
+.icon-picker-button {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 1.1rem;
+}
+
+.color-palette-button:hover,
+.icon-picker-button:hover {
+  transform: translateY(-1px);
+}
+
+.color-palette-button.is-selected,
+.icon-picker-button.is-selected {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
+}
+
+.user-theme-dot {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex: 0 0 auto;
+}
+
+.user-profile-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.user-profile-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #f8fafc;
+}
+
+.user-profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-profile-name {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.user-profile-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .calendar-legend {
@@ -268,6 +522,10 @@ body {
 }
 
 @media (max-width: 991.98px) {
+  .page-grid {
+    grid-template-columns: 1fr;
+  }
+
   .calendar-layout {
     grid-template-columns: 1fr;
   }
@@ -278,6 +536,24 @@ body {
 }
 
 @media (max-width: 575.98px) {
+  .site-shell {
+    width: min(100% - 1rem, 1200px);
+    padding-top: 0.75rem;
+  }
+
+  .site-nav {
+    padding: 0.9rem;
+  }
+
+  .site-links {
+    width: 100%;
+  }
+
+  .site-link {
+    flex: 1 1 calc(50% - 0.55rem);
+    text-align: center;
+  }
+
   .calendar-shell,
   .calendar-sidebar-card {
     padding: 1rem;
@@ -291,6 +567,16 @@ body {
     width: 100%;
   }
 
+  .calendar-filter-option {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .color-palette-button,
+  .icon-picker-button {
+    flex: 0 0 auto;
+  }
+
   .selected-event-item {
     flex-direction: column;
   }
@@ -300,6 +586,15 @@ body {
   }
 
   .selected-event-actions .btn {
+    flex: 1 1 0;
+  }
+
+  .user-profile-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-profile-actions .btn {
     flex: 1 1 0;
   }
 

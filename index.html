@@ -10,10 +10,31 @@
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
     crossorigin="anonymous"
   >
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  >
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-  <main class="container py-4 py-lg-5">
+  <div class="site-shell">
+    <nav class="site-nav">
+      <a class="site-brand" href="index.html">
+        <span class="site-brand-mark"><i class="bi bi-house-heart-fill"></i></span>
+        <span class="site-brand-text">
+          <strong>Family Hub</strong>
+          <span>Manage home life in one place</span>
+        </span>
+      </a>
+      <div class="site-links">
+        <a class="site-link is-active" href="index.html">Calendar</a>
+        <a class="site-link" href="spendings.html">Spendings</a>
+        <a class="site-link" href="house-maintenance.html">House Maintenance</a>
+        <a class="site-link" href="passwords.html">Password Manager</a>
+      </div>
+    </nav>
+
+  <main class="container px-0 py-2 py-lg-3">
     <section class="hero">
       <div class="hero-card p-4 p-lg-5">
         <div class="row align-items-center g-4">
@@ -25,8 +46,7 @@
               No Node.js, no build step, and easy to update on GitHub Pages.
             </p>
             <div class="d-flex flex-wrap gap-2">
-              <a class="btn btn-dark btn-lg" href="#planner">Open planner</a>
-              <a class="btn btn-outline-dark btn-lg" href="#calendar-section">Open calendar</a>
+              <a class="btn btn-dark btn-lg" href="#calendar-section">Open calendar</a>
             </div>
           </div>
           <div class="col-lg-5">
@@ -52,52 +72,6 @@
       </div>
     </section>
 
-    <section id="planner" class="row g-4">
-      <div class="col-lg-5">
-        <div class="panel-card p-4 h-100">
-          <h2 class="h3 mb-3">Add a task</h2>
-          <p class="text-secondary mb-4">Keep quick family reminders in the browser with local storage.</p>
-
-          <form id="task-form">
-            <div class="mb-3">
-              <label class="form-label" for="task-name">Task name</label>
-              <input class="form-control form-control-lg" id="task-name" type="text" placeholder="Book dentist appointment">
-            </div>
-
-            <div class="mb-4">
-              <label class="form-label" for="task-category">Category</label>
-              <select class="form-select form-select-lg" id="task-category">
-                <option>Bills</option>
-                <option>Cleaning</option>
-                <option>Family</option>
-                <option>Appointment</option>
-                <option>Other</option>
-              </select>
-            </div>
-
-            <button class="btn btn-success btn-lg w-100" type="submit">Add task</button>
-          </form>
-        </div>
-      </div>
-
-      <div class="col-lg-7">
-        <div class="panel-card p-4 h-100">
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <div>
-              <h2 class="h3 mb-1">Task list</h2>
-              <p class="text-secondary mb-0">Saved in this browser only.</p>
-            </div>
-            <button class="btn btn-outline-danger" id="clear-tasks" type="button">Clear all</button>
-          </div>
-
-          <div id="task-empty" class="task-empty">
-            No tasks yet. Add one to get started.
-          </div>
-          <ul id="task-list" class="list-group list-group-flush d-none"></ul>
-        </div>
-      </div>
-    </section>
-
     <section id="calendar-section" class="pt-4 pt-lg-5">
       <div class="panel-card p-4 p-lg-5">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
@@ -106,29 +80,32 @@
             <p class="text-secondary mb-0">Monthly view with shared events by person.</p>
           </div>
           <div class="calendar-toolbar">
+            <button class="btn btn-outline-dark" id="open-user-form" type="button">Manage users</button>
+            <button class="btn btn-outline-dark" id="download-events-button" type="button">Save events.json</button>
             <button class="btn btn-dark" id="open-event-form" type="button">Add event</button>
             <div id="calendar-legend" class="calendar-legend"></div>
           </div>
+        </div>
+
+        <div class="calendar-filter-card mb-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+              <h3 class="h6 mb-1">Show events for</h3>
+              <p class="text-secondary mb-0">Filter the calendar by user profile.</p>
+            </div>
+          </div>
+          <div id="calendar-filters" class="calendar-filters"></div>
         </div>
 
         <div class="calendar-layout">
           <div class="calendar-shell">
             <div id="calendar"></div>
           </div>
-
-          <aside class="calendar-sidebar">
-            <div class="calendar-sidebar-card">
-              <p class="calendar-sidebar-label mb-2">Selected date</p>
-              <h3 id="selected-date-title" class="h4 mb-3">Pick a date</h3>
-              <div id="selected-date-events" class="selected-events">
-                <p class="text-secondary mb-0">Tap a day to see who has plans.</p>
-              </div>
-            </div>
-          </aside>
         </div>
       </div>
     </section>
   </main>
+  </div>
 
   <div class="modal fade" id="event-modal" tabindex="-1" aria-labelledby="event-form-heading" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -158,18 +135,74 @@
 
             <div class="col-md-6">
               <label class="form-label" for="event-person">Person</label>
-              <input class="form-control" id="event-person" type="text" placeholder="Emma" required>
+              <select class="form-select" id="event-person" required></select>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label" for="event-color">Color</label>
-              <input class="form-control form-control-color" id="event-color" type="color" value="#4285f4" title="Choose an event color">
+              <label class="form-label" for="event-color-preview">Theme color</label>
+              <div class="user-theme-preview" id="event-color-preview">
+                <span class="user-theme-dot" id="event-color-swatch"></span>
+                <span id="event-color-label">Select a user</span>
+              </div>
             </div>
 
-            <div class="col-12 d-flex justify-content-end">
+            <div class="col-12 d-flex justify-content-between align-items-center">
+              <button class="btn btn-outline-danger d-none" id="delete-event-button" type="button">Delete event</button>
               <button class="btn btn-success" id="save-event-button" type="submit">Save event</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="user-modal" tabindex="-1" aria-labelledby="user-form-heading" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content event-modal-content">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <h2 class="modal-title h4 mb-1" id="user-form-heading">Manage user profiles</h2>
+            <p class="text-secondary mb-0">Set each person name and theme color once, then reuse it for events.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-3">
+          <form id="user-profile-form" class="row g-3">
+            <div class="col-12">
+              <div class="alert alert-danger d-none mb-0" id="user-form-error" role="alert"></div>
+            </div>
+
+            <div class="col-md-8">
+              <label class="form-label" for="profile-name">User name</label>
+              <input class="form-control" id="profile-name" type="text" placeholder="Emma" required>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Theme color</label>
+              <div id="profile-color-palette" class="color-palette"></div>
+              <input id="profile-color" type="hidden" value="#4285f4">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Icon</label>
+              <div id="profile-icon-picker" class="icon-picker"></div>
+              <input id="profile-icon" type="hidden" value="bi-person-fill">
+            </div>
+
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-success" id="save-profile-button" type="submit">Save user</button>
+            </div>
+          </form>
+
+          <hr class="my-4">
+
+          <div>
+            <h3 class="h6 mb-3">Current users</h3>
+            <div id="user-profile-list" class="user-profile-list"></div>
+          </div>
+          <div class="d-flex justify-content-end mt-4">
+            <button class="btn btn-dark" id="download-profiles-button" type="button">Save profile changes</button>
+          </div>
         </div>
       </div>
     </div>
@@ -186,7 +219,6 @@
     crossorigin="anonymous"
   ></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-  <script src="assets/js/app.js"></script>
   <script src="assets/js/calendar.js"></script>
 </body>
 </html>

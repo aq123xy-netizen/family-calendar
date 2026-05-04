@@ -1,10 +1,14 @@
 (function () {
   var calendarElement = document.getElementById("calendar");
   var legendElement = document.getElementById("calendar-legend");
+  var filtersElement = document.getElementById("calendar-filters");
   var selectedDateTitle = document.getElementById("selected-date-title");
   var selectedDateEvents = document.getElementById("selected-date-events");
   var openEventFormButton = document.getElementById("open-event-form");
-  var closeEventFormButton = document.getElementById("close-event-form");
+  var openUserFormButton = document.getElementById("open-user-form");
+  var downloadEventsButton = document.getElementById("download-events-button");
+  var downloadProfilesButton = document.getElementById("download-profiles-button");
+
   var eventModalElement = document.getElementById("event-modal");
   var eventForm = document.getElementById("calendar-event-form");
   var eventFormHeading = document.getElementById("event-form-heading");
@@ -13,66 +17,48 @@
   var eventTitleInput = document.getElementById("event-title");
   var eventDateTimeInput = document.getElementById("event-datetime");
   var eventPersonInput = document.getElementById("event-person");
-  var eventColorInput = document.getElementById("event-color");
+  var eventColorSwatch = document.getElementById("event-color-swatch");
+  var eventColorLabel = document.getElementById("event-color-label");
+  var deleteEventButton = document.getElementById("delete-event-button");
   var saveEventButton = document.getElementById("save-event-button");
-  var extraEventsKey = "family-calendar-extra-events";
-  var eventOverridesKey = "family-calendar-event-overrides";
-  var eventDeletionsKey = "family-calendar-event-deletions";
+
+  var userModalElement = document.getElementById("user-modal");
+  var userForm = document.getElementById("user-profile-form");
+  var userFormError = document.getElementById("user-form-error");
+  var profileNameInput = document.getElementById("profile-name");
+  var profileColorInput = document.getElementById("profile-color");
+  var profileColorPalette = document.getElementById("profile-color-palette");
+  var profileIconPicker = document.getElementById("profile-icon-picker");
+  var profileIconInput = document.getElementById("profile-icon");
+  var saveProfileButton = document.getElementById("save-profile-button");
+  var userProfileList = document.getElementById("user-profile-list");
+  var profilesStorageKey = "family-calendar-profiles";
+  var eventsStorageKey = "family-calendar-events";
+
   var editingEventId = null;
+  var editingProfileId = null;
   var selectedDate = null;
+  var activeProfileIds = {};
+  var colorOptions = ["#4285f4", "#34a853", "#fbbc05", "#ea4335", "#7c3aed", "#0f766e", "#ec4899", "#f97316"];
+  var iconOptions = [
+    "bi-person-fill",
+    "bi-person-standing",
+    "bi-person-hearts",
+    "bi-person-heart",
+    "bi-people-fill",
+    "bi-heart-fill",
+    "bi-star-fill",
+    "bi-balloon-heart-fill",
+    "bi-emoji-smile-fill",
+    "bi-house-heart-fill",
+    "bi-bookmark-heart-fill",
+    "bi-cat"
+  ];
   var eventModal = eventModalElement && window.bootstrap ? new window.bootstrap.Modal(eventModalElement) : null;
+  var userModal = userModalElement && window.bootstrap ? new window.bootstrap.Modal(userModalElement) : null;
 
   if (!calendarElement || !window.FullCalendar) {
     return;
-  }
-
-  function readJsonStorage(key, fallbackValue) {
-    try {
-      return JSON.parse(localStorage.getItem(key)) || fallbackValue;
-    } catch (error) {
-      return fallbackValue;
-    }
-  }
-
-  function writeJsonStorage(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
-  function loadExtraEvents() {
-    return readJsonStorage(extraEventsKey, []);
-  }
-
-  function saveExtraEvents(events) {
-    writeJsonStorage(extraEventsKey, events);
-  }
-
-  function loadEventOverrides() {
-    return readJsonStorage(eventOverridesKey, {});
-  }
-
-  function saveEventOverrides(overrides) {
-    writeJsonStorage(eventOverridesKey, overrides);
-  }
-
-  function loadDeletedIds() {
-    return readJsonStorage(eventDeletionsKey, []);
-  }
-
-  function saveDeletedIds(ids) {
-    writeJsonStorage(eventDeletionsKey, ids);
-  }
-
-  function setFormVisibility(isVisible) {
-    if (!eventModal) {
-      return;
-    }
-
-    if (isVisible) {
-      eventModal.show();
-      return;
-    }
-
-    eventModal.hide();
   }
 
   function formatHeading(dateString) {
@@ -108,137 +94,169 @@
     };
   }
 
-  function hideFormError() {
-    if (!eventFormError) {
+  function hideFormError(element) {
+    if (!element) {
       return;
     }
 
-    eventFormError.textContent = "";
-    eventFormError.classList.add("d-none");
+    element.textContent = "";
+    element.classList.add("d-none");
   }
 
-  function showFormError(message) {
-    if (!eventFormError) {
+  function showFormError(element, message) {
+    if (!element) {
       return;
     }
 
-    eventFormError.textContent = message;
-    eventFormError.classList.remove("d-none");
+    element.textContent = message;
+    element.classList.remove("d-none");
   }
 
-  function renderLegend(events) {
-    var people = [];
-    var peopleMap = {};
+  function makeId(prefix) {
+    return prefix + "-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+  }
 
-    events.forEach(function (event) {
-      if (!peopleMap[event.person]) {
-        peopleMap[event.person] = true;
-        people.push({
-          person: event.person,
-          color: event.color
-        });
+  function setModalVisibility(modalInstance, isVisible) {
+    if (!modalInstance) {
+      return;
+    }
+
+    if (isVisible) {
+      modalInstance.show();
+      return;
+    }
+
+    modalInstance.hide();
+  }
+
+  function downloadJson(filename, data) {
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function loadStoredCollection(storageKey) {
+    try {
+      var rawValue = localStorage.getItem(storageKey);
+
+      if (!rawValue) {
+        return null;
       }
-    });
 
-    legendElement.innerHTML = people.map(function (entry) {
-      return [
-        '<span class="legend-chip">',
-        '<span class="legend-dot" style="background:', entry.color, '"></span>',
-        entry.person,
-        "</span>"
-      ].join("");
-    }).join("");
-  }
+      var parsedValue = JSON.parse(rawValue);
 
-  function renderSelectedDate(dateString, events) {
-    selectedDate = dateString;
-    selectedDateTitle.textContent = formatHeading(dateString);
-
-    if (!events.length) {
-      selectedDateEvents.innerHTML = '<p class="text-secondary mb-0">No events scheduled for this day.</p>';
-      return;
+      return Array.isArray(parsedValue) ? parsedValue : null;
+    } catch (error) {
+      return null;
     }
-
-    selectedDateEvents.innerHTML = events.map(function (event) {
-      return [
-        '<div class="selected-event-item" data-event-id="', event.id, '">',
-        '<div class="selected-event-body">',
-        '<span class="selected-event-dot" style="background:', event.color, '"></span>',
-        '<div>',
-        '<div class="selected-event-person">', event.person, "</div>",
-        '<div class="selected-event-title">', event.title, "</div>",
-        '<div class="selected-event-time">', formatTime(event.time), "</div>",
-        "</div>",
-        "</div>",
-        '<div class="selected-event-actions">',
-        '<button class="btn btn-sm btn-outline-secondary event-edit-button" type="button" data-event-id="', event.id, '">Edit</button>',
-        '<button class="btn btn-sm btn-outline-danger event-delete-button" type="button" data-event-id="', event.id, '">Delete</button>',
-        "</div>",
-        "</div>"
-      ].join("");
-    }).join("");
   }
 
-  function resetEventForm() {
-    editingEventId = null;
-    eventForm.reset();
-    eventColorInput.value = "#4285f4";
-    hideFormError();
-    if (selectedDate) {
-      eventDateTimeInput.value = buildDateTimeValue(selectedDate, "");
-    }
-    eventFormHeading.textContent = "New calendar event";
-    eventFormCopy.textContent = "Add an event for one person and it will appear right away.";
-    saveEventButton.textContent = "Save event";
-  }
-
-  function beginEditEvent(eventData) {
-    editingEventId = eventData.id;
-    eventTitleInput.value = eventData.title;
-    eventDateTimeInput.value = buildDateTimeValue(eventData.date, eventData.time);
-    eventPersonInput.value = eventData.person;
-    eventColorInput.value = eventData.color;
-    eventFormHeading.textContent = "Edit calendar event";
-    eventFormCopy.textContent = "Update the details below and save your changes.";
-    saveEventButton.textContent = "Update event";
-    setFormVisibility(true);
-    eventTitleInput.focus();
-  }
-
-  fetch("assets/events.json")
-    .then(function (response) {
+  Promise.all([
+    fetch("assets/events.json").then(function (response) {
       if (!response.ok) {
         throw new Error("Could not load events.json");
       }
 
       return response.json();
+    }),
+    fetch("assets/profiles.json").then(function (response) {
+      if (!response.ok) {
+        throw new Error("Could not load profiles.json");
+      }
+
+      return response.json();
     })
-    .then(function (events) {
-      var baseEvents = events.map(function (event, index) {
-        return Object.assign({
-          id: event.id || "seed-" + (index + 1)
-        }, event);
+  ])
+    .then(function (results) {
+      var eventSeeds = loadStoredCollection(eventsStorageKey) || results[0];
+      var profileSeeds = loadStoredCollection(profilesStorageKey) || results[1];
+      var profiles = profileSeeds.map(function (profile, index) {
+        return {
+          id: profile.id || "profile-seed-" + (index + 1),
+          name: profile.name,
+          color: profile.color || "#4285f4",
+          icon: profile.icon || "bi-person-fill"
+        };
       });
-      var extraEvents = loadExtraEvents();
-      var eventOverrides = loadEventOverrides();
-      var deletedIds = loadDeletedIds();
+      var events = eventSeeds.map(function (event, index) {
+        return {
+          id: event.id || "seed-" + (index + 1),
+          title: event.title,
+          date: event.date,
+          time: event.time || "",
+          profileId: event.profileId || "",
+          person: event.person,
+          color: event.color || "#4285f4"
+        };
+      });
       var calendar;
 
-      extraEvents = extraEvents.map(function (event, index) {
-        return Object.assign({
-          id: event.id || "local-migrated-" + Date.now() + "-" + index
-        }, event);
-      });
-      saveExtraEvents(extraEvents);
+      function getProfileById(profileId) {
+        return profiles.find(function (profile) {
+          return profile.id === profileId;
+        }) || null;
+      }
 
-      function getAllEvents() {
-        return baseEvents.concat(extraEvents)
-          .filter(function (event) {
-            return deletedIds.indexOf(event.id) === -1;
-          })
-          .map(function (event) {
-            return Object.assign({}, event, eventOverrides[event.id] || {});
-          });
+      function getProfileByName(name) {
+        return profiles.find(function (profile) {
+          return profile.name.toLowerCase() === String(name || "").toLowerCase();
+        }) || null;
+      }
+
+      function normalizeEvents() {
+        events = events.map(function (event) {
+          var matchedProfile = getProfileById(event.profileId) || getProfileByName(event.person);
+
+          if (!matchedProfile && event.person) {
+            matchedProfile = {
+              id: makeId("profile"),
+              name: event.person,
+              color: event.color || "#4285f4",
+              icon: "bi-person-fill"
+            };
+            profiles.push(matchedProfile);
+          }
+
+          return {
+            id: event.id || makeId("event"),
+            title: event.title,
+            date: event.date,
+            time: event.time || "",
+            profileId: matchedProfile ? matchedProfile.id : (event.profileId || ""),
+            person: matchedProfile ? matchedProfile.name : event.person,
+            color: matchedProfile ? matchedProfile.color : (event.color || "#4285f4"),
+            icon: matchedProfile ? matchedProfile.icon : "bi-person-fill"
+          };
+        });
+      }
+
+      normalizeEvents();
+
+      function isProfileVisible(profileId) {
+        if (!profileId) {
+          return true;
+        }
+
+        return activeProfileIds[profileId] !== false;
+      }
+
+      function getVisibleEvents() {
+        return events.filter(function (event) {
+          return isProfileVisible(event.profileId);
+        });
+      }
+
+      function getEventsForDate(dateString) {
+        return getVisibleEvents().filter(function (event) {
+          return event.date === dateString;
+        });
       }
 
       function buildCalendarEvents(sourceEvents) {
@@ -251,86 +269,256 @@
             backgroundColor: event.color,
             borderColor: event.color,
             extendedProps: {
+              profileId: event.profileId,
               person: event.person,
               color: event.color,
+              icon: event.icon || "bi-person-fill",
               time: event.time || ""
             }
           };
         });
       }
 
+      function renderLegend() {
+        legendElement.innerHTML = profiles.map(function (profile) {
+          return [
+            '<span class="legend-chip">',
+            '<span class="legend-dot" style="background:', profile.color, '"></span>',
+            '<i class="bi ', profile.icon || "bi-person-fill", ' legend-icon"></i>',
+            profile.name,
+            "</span>"
+          ].join("");
+        }).join("");
+      }
+
+      function renderProfileSelect() {
+        eventPersonInput.innerHTML = profiles.map(function (profile) {
+          return '<option value="' + profile.id + '">' + profile.name + "</option>";
+        }).join("");
+
+        updateEventColorPreview();
+      }
+
+      function updateEventColorPreview() {
+        var selectedProfile = getProfileById(eventPersonInput.value);
+
+        if (!selectedProfile) {
+          eventColorSwatch.style.backgroundColor = "#cbd5e1";
+          eventColorLabel.textContent = "Select a user";
+          return;
+        }
+
+        eventColorSwatch.style.backgroundColor = selectedProfile.color;
+        eventColorLabel.innerHTML = '<i class="bi ' + (selectedProfile.icon || "bi-person-fill") + ' me-2"></i>' + selectedProfile.name + " theme";
+      }
+
+      function renderFilters() {
+        filtersElement.innerHTML = profiles.map(function (profile) {
+          if (typeof activeProfileIds[profile.id] === "undefined") {
+            activeProfileIds[profile.id] = true;
+          }
+
+          return [
+            '<label class="calendar-filter-option">',
+            '<input class="form-check-input calendar-filter-input" type="checkbox" value="', profile.id, '"',
+            activeProfileIds[profile.id] ? " checked" : "",
+            ">",
+            '<span class="legend-dot" style="background:', profile.color, '"></span>',
+            '<i class="bi ', profile.icon || "bi-person-fill", ' calendar-filter-icon"></i>',
+            '<span>', profile.name, "</span>",
+            "</label>"
+          ].join("");
+        }).join("");
+      }
+
+      function renderSelectedDate(dateString, dayEvents) {
+        selectedDate = dateString;
+        if (!selectedDateTitle || !selectedDateEvents) {
+          return;
+        }
+
+        selectedDateTitle.textContent = formatHeading(dateString);
+
+        if (!dayEvents.length) {
+          selectedDateEvents.innerHTML = '<p class="text-secondary mb-0">No events scheduled for this day.</p>';
+          return;
+        }
+
+        selectedDateEvents.innerHTML = dayEvents.map(function (event) {
+          return [
+            '<div class="selected-event-item" data-event-id="', event.id, '">',
+            '<div class="selected-event-body">',
+            '<span class="selected-event-dot" style="background:', event.color, '"></span>',
+            '<div>',
+            '<div class="selected-event-person"><i class="bi ', event.icon || "bi-person-fill", ' selected-event-icon me-1"></i>', event.person, "</div>",
+            '<div class="selected-event-title">', event.title, "</div>",
+            '<div class="selected-event-time">', formatTime(event.time), "</div>",
+            "</div>",
+            "</div>",
+            '<div class="selected-event-actions">',
+            '<button class="btn btn-sm btn-outline-secondary event-edit-button" type="button" data-event-id="', event.id, '">Edit</button>',
+            '<button class="btn btn-sm btn-outline-danger event-delete-button" type="button" data-event-id="', event.id, '">Delete</button>',
+            "</div>",
+            "</div>"
+          ].join("");
+        }).join("");
+      }
+
+      function renderColorPalette() {
+        profileColorPalette.innerHTML = colorOptions.map(function (color) {
+          return '<button class="color-palette-button' + (profileColorInput.value === color ? " is-selected" : "") + '" type="button" data-color="' + color + '" style="background:' + color + '"></button>';
+        }).join("");
+      }
+
+      function renderIconPicker() {
+        profileIconPicker.innerHTML = iconOptions.map(function (iconClass) {
+          return '<button class="icon-picker-button' + (profileIconInput.value === iconClass ? " is-selected" : "") + '" type="button" data-icon="' + iconClass + '"><i class="bi ' + iconClass + '"></i></button>';
+        }).join("");
+      }
+
+      function resetEventForm() {
+        editingEventId = null;
+        eventForm.reset();
+        hideFormError(eventFormError);
+        deleteEventButton.classList.add("d-none");
+
+        if (selectedDate) {
+          eventDateTimeInput.value = buildDateTimeValue(selectedDate, "");
+        }
+
+        if (profiles[0]) {
+          eventPersonInput.value = profiles[0].id;
+        }
+
+        eventFormHeading.textContent = "New calendar event";
+        eventFormCopy.textContent = "Add an event for one person and it will appear right away.";
+        saveEventButton.textContent = "Save event";
+        updateEventColorPreview();
+      }
+
+      function beginEditEvent(eventData) {
+        editingEventId = eventData.id;
+        eventTitleInput.value = eventData.title;
+        eventDateTimeInput.value = buildDateTimeValue(eventData.date, eventData.time);
+        eventPersonInput.value = eventData.profileId;
+        eventFormHeading.textContent = "Edit calendar event";
+        eventFormCopy.textContent = "Update the details below and save your changes.";
+        saveEventButton.textContent = "Update event";
+        deleteEventButton.classList.remove("d-none");
+        updateEventColorPreview();
+        setModalVisibility(eventModal, true);
+        eventTitleInput.focus();
+      }
+
+      function resetProfileForm() {
+        editingProfileId = null;
+        userForm.reset();
+        profileColorInput.value = "#4285f4";
+        profileIconInput.value = "bi-person-fill";
+        saveProfileButton.textContent = "Save user";
+        hideFormError(userFormError);
+        renderColorPalette();
+        renderIconPicker();
+      }
+
+      function beginEditProfile(profile) {
+        editingProfileId = profile.id;
+        profileNameInput.value = profile.name;
+        profileColorInput.value = profile.color;
+        profileIconInput.value = profile.icon || "bi-person-fill";
+        saveProfileButton.textContent = "Update user";
+        renderColorPalette();
+        renderIconPicker();
+        setModalVisibility(userModal, true);
+        profileNameInput.focus();
+      }
+
+      function renderProfileList() {
+        userProfileList.innerHTML = profiles.map(function (profile) {
+          return [
+            '<div class="user-profile-item">',
+            '<div class="user-profile-meta">',
+            '<span class="user-theme-dot" style="background:', profile.color, '"></span>',
+            '<i class="bi ', profile.icon || "bi-person-fill", ' user-profile-icon"></i>',
+            '<span class="user-profile-name">', profile.name, "</span>",
+            "</div>",
+            '<div class="user-profile-actions">',
+            '<button class="btn btn-sm btn-outline-secondary profile-edit-button" type="button" data-profile-id="', profile.id, '">Edit</button>',
+            '<button class="btn btn-sm btn-outline-danger profile-delete-button" type="button" data-profile-id="', profile.id, '">Delete</button>',
+            "</div>",
+            "</div>"
+          ].join("");
+        }).join("");
+      }
+
       function findEventById(id) {
-        return getAllEvents().find(function (event) {
+        return events.find(function (event) {
+          return event.id === id;
+        }) || null;
+      }
+
+      function findEventIndexById(id) {
+        return events.findIndex(function (event) {
           return event.id === id;
         });
       }
 
-      function saveOrUpdateEvent(eventData) {
-        var existingExtraIndex = extraEvents.findIndex(function (event) {
-          return event.id === eventData.id;
+      function getExportableEvents() {
+        return events.map(function (event) {
+          return {
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            time: event.time || "",
+            profileId: event.profileId
+          };
         });
-        var existsInBaseEvents = baseEvents.some(function (event) {
-          return event.id === eventData.id;
-        });
-
-        if (existingExtraIndex >= 0) {
-          extraEvents[existingExtraIndex] = eventData;
-          saveExtraEvents(extraEvents);
-          return;
-        }
-
-        if (!existsInBaseEvents) {
-          extraEvents.push(eventData);
-          saveExtraEvents(extraEvents);
-          return;
-        }
-
-        eventOverrides[eventData.id] = {
-          title: eventData.title,
-          date: eventData.date,
-          person: eventData.person,
-          time: eventData.time,
-          color: eventData.color
-        };
-        saveEventOverrides(eventOverrides);
       }
 
-      function deleteEventById(id) {
-        var existingExtraIndex = extraEvents.findIndex(function (event) {
-          return event.id === id;
+      function getExportableProfiles() {
+        return profiles.map(function (profile) {
+          return {
+            id: profile.id,
+            name: profile.name,
+            color: profile.color,
+            icon: profile.icon || "bi-person-fill"
+          };
         });
+      }
 
-        if (existingExtraIndex >= 0) {
-          extraEvents.splice(existingExtraIndex, 1);
-          saveExtraEvents(extraEvents);
-        } else if (deletedIds.indexOf(id) === -1) {
-          deletedIds.push(id);
-          saveDeletedIds(deletedIds);
-        }
-
-        if (eventOverrides[id]) {
-          delete eventOverrides[id];
-          saveEventOverrides(eventOverrides);
-        }
+      function persistCalendarData() {
+        localStorage.setItem(eventsStorageKey, JSON.stringify(getExportableEvents()));
+        localStorage.setItem(profilesStorageKey, JSON.stringify(getExportableProfiles()));
       }
 
       function refreshCalendar() {
-        var allEvents = getAllEvents();
+        var visibleEvents = getVisibleEvents();
 
         calendar.removeAllEvents();
-        buildCalendarEvents(allEvents).forEach(function (event) {
+        buildCalendarEvents(visibleEvents).forEach(function (event) {
           calendar.addEvent(event);
         });
-        renderLegend(allEvents);
+        renderLegend();
+        renderFilters();
+        renderProfileSelect();
+        renderProfileList();
 
         if (selectedDate) {
-          renderSelectedDate(selectedDate, allEvents.filter(function (event) {
-            return event.date === selectedDate;
-          }));
+          renderSelectedDate(selectedDate, getEventsForDate(selectedDate));
         }
       }
 
-      var allEvents = getAllEvents();
+      function saveProfilesToBrowser() {
+        persistCalendarData();
+
+        if (downloadProfilesButton) {
+          downloadProfilesButton.textContent = "Saved";
+
+          window.setTimeout(function () {
+            downloadProfilesButton.textContent = "Save profile changes";
+          }, 1500);
+        }
+      }
 
       calendar = new FullCalendar.Calendar(calendarElement, {
         initialView: "dayGridMonth",
@@ -344,7 +532,7 @@
         buttonText: {
           today: "Today"
         },
-        events: buildCalendarEvents(allEvents),
+        events: buildCalendarEvents(getVisibleEvents()),
         eventDidMount: function (info) {
           var timeText = info.event.extendedProps.time ? formatTime(info.event.extendedProps.time) + " - " : "";
           var fullText = timeText + info.event.title + " (" + info.event.extendedProps.person + ")";
@@ -357,21 +545,13 @@
         dayMaxEventRows: 3,
         dateClick: function (info) {
           eventDateTimeInput.value = buildDateTimeValue(info.dateStr, "");
-
-          var selected = getAllEvents().filter(function (event) {
-            return event.date === info.dateStr;
-          });
-
-          renderSelectedDate(info.dateStr, selected);
+          renderSelectedDate(info.dateStr, getEventsForDate(info.dateStr));
         },
         eventClick: function (info) {
           var clickedDate = info.event.startStr.slice(0, 10);
-          var selected = getAllEvents().filter(function (event) {
-            return event.date === clickedDate;
-          });
           var clickedEvent = findEventById(info.event.id);
 
-          renderSelectedDate(clickedDate, selected);
+          renderSelectedDate(clickedDate, getEventsForDate(clickedDate));
 
           if (clickedEvent) {
             beginEditEvent(clickedEvent);
@@ -381,76 +561,230 @@
 
       calendar.render();
 
+      var initialEvents = getVisibleEvents();
       var todayString = new Date().toISOString().slice(0, 10);
-      var initialDate = allEvents.some(function (event) {
+      var initialDate = initialEvents.some(function (event) {
         return event.date === todayString;
-      }) ? todayString : (allEvents[0] ? allEvents[0].date : todayString);
+      }) ? todayString : (initialEvents[0] ? initialEvents[0].date : todayString);
 
-      renderSelectedDate(initialDate, allEvents.filter(function (event) {
-        return event.date === initialDate;
-      }));
+      renderLegend();
+      renderFilters();
+      renderProfileSelect();
+      renderProfileList();
+      renderColorPalette();
+      renderIconPicker();
+      renderSelectedDate(initialDate, getEventsForDate(initialDate));
       resetEventForm();
+      resetProfileForm();
 
-      if (openEventFormButton) {
-        openEventFormButton.addEventListener("click", function () {
-          resetEventForm();
-          setFormVisibility(true);
-          eventTitleInput.focus();
+      openEventFormButton.addEventListener("click", function () {
+        resetEventForm();
+        setModalVisibility(eventModal, true);
+        eventTitleInput.focus();
+      });
+
+      openUserFormButton.addEventListener("click", function () {
+        resetProfileForm();
+        setModalVisibility(userModal, true);
+        profileNameInput.focus();
+      });
+
+      downloadEventsButton.addEventListener("click", function () {
+        downloadJson("events.json", getExportableEvents());
+      });
+
+      downloadProfilesButton.addEventListener("click", function () {
+        saveProfilesToBrowser();
+      });
+
+      eventPersonInput.addEventListener("change", updateEventColorPreview);
+
+      profileColorPalette.addEventListener("click", function (clickEvent) {
+        var colorButton = clickEvent.target.closest(".color-palette-button");
+
+        if (!colorButton) {
+          return;
+        }
+
+        profileColorInput.value = colorButton.getAttribute("data-color");
+        renderColorPalette();
+      });
+
+      profileIconPicker.addEventListener("click", function (clickEvent) {
+        var iconButton = clickEvent.target.closest(".icon-picker-button");
+
+        if (!iconButton) {
+          return;
+        }
+
+        profileIconInput.value = iconButton.getAttribute("data-icon");
+        renderIconPicker();
+      });
+
+      filtersElement.addEventListener("change", function (changeEvent) {
+        var filterInput = changeEvent.target.closest(".calendar-filter-input");
+
+        if (!filterInput) {
+          return;
+        }
+
+        activeProfileIds[filterInput.value] = filterInput.checked;
+        refreshCalendar();
+      });
+
+      eventForm.addEventListener("submit", function (submitEvent) {
+        submitEvent.preventDefault();
+        hideFormError(eventFormError);
+
+        var selectedProfile = getProfileById(eventPersonInput.value);
+        var selectedDateTime = eventDateTimeInput.value;
+        var selectedDateObject = selectedDateTime ? new Date(selectedDateTime) : null;
+        var now = new Date();
+        var dateParts = splitDateTimeValue(selectedDateTime);
+
+        if (!selectedProfile) {
+          showFormError(eventFormError, "Please select a user profile.");
+          return;
+        }
+
+        if (!selectedDateObject || Number.isNaN(selectedDateObject.getTime())) {
+          showFormError(eventFormError, "Please enter a valid date and time.");
+          return;
+        }
+
+        if (selectedDateObject < now) {
+          showFormError(eventFormError, "You cannot create or update an event in the past.");
+          return;
+        }
+
+        var eventData = {
+          id: editingEventId || makeId("event"),
+          title: eventTitleInput.value.trim(),
+          date: dateParts.date,
+          time: dateParts.time,
+          profileId: selectedProfile.id,
+          person: selectedProfile.name,
+          color: selectedProfile.color,
+          icon: selectedProfile.icon || "bi-person-fill"
+        };
+
+        if (!eventData.title || !eventData.date) {
+          showFormError(eventFormError, "Please complete the event title and date.");
+          return;
+        }
+
+        var eventIndex = findEventIndexById(eventData.id);
+
+        if (eventIndex >= 0) {
+          events[eventIndex] = eventData;
+        } else {
+          events.push(eventData);
+        }
+
+        selectedDate = eventData.date;
+        refreshCalendar();
+        persistCalendarData();
+        resetEventForm();
+        setModalVisibility(eventModal, false);
+      });
+
+      userForm.addEventListener("submit", function (submitEvent) {
+        submitEvent.preventDefault();
+        hideFormError(userFormError);
+
+        var profileName = profileNameInput.value.trim();
+        var duplicateProfile = profiles.find(function (profile) {
+          return profile.name.toLowerCase() === profileName.toLowerCase() && profile.id !== editingProfileId;
         });
-      }
 
-      if (closeEventFormButton) {
-        closeEventFormButton.addEventListener("click", function () {
-          resetEventForm();
-        });
-      }
+        if (!profileName) {
+          showFormError(userFormError, "Please enter a user name.");
+          return;
+        }
 
-      if (eventForm) {
-        eventForm.addEventListener("submit", function (submitEvent) {
-          submitEvent.preventDefault();
+        if (duplicateProfile) {
+          showFormError(userFormError, "That user name already exists.");
+          return;
+        }
 
-          hideFormError();
+        if (editingProfileId) {
+          profiles = profiles.map(function (profile) {
+            if (profile.id !== editingProfileId) {
+              return profile;
+            }
 
-          var selectedDateTime = eventDateTimeInput.value;
-          var selectedDateObject = selectedDateTime ? new Date(selectedDateTime) : null;
-          var now = new Date();
-
-          var eventData = {
-            id: editingEventId || "local-" + Date.now(),
-            title: eventTitleInput.value.trim(),
-            date: splitDateTimeValue(selectedDateTime).date,
-            person: eventPersonInput.value.trim(),
-            time: splitDateTimeValue(selectedDateTime).time,
-            color: eventColorInput.value
+            return {
+              id: profile.id,
+              name: profileName,
+              color: profileColorInput.value,
+              icon: profileIconInput.value || "bi-person-fill"
+            };
+          });
+        } else {
+          var newProfile = {
+            id: makeId("profile"),
+            name: profileName,
+            color: profileColorInput.value,
+            icon: profileIconInput.value || "bi-person-fill"
           };
+          profiles.push(newProfile);
+          activeProfileIds[newProfile.id] = true;
+        }
 
-          if (!eventData.title || !eventData.date || !eventData.person) {
+        normalizeEvents();
+        refreshCalendar();
+        persistCalendarData();
+        resetProfileForm();
+        setModalVisibility(userModal, false);
+      });
+
+      if (deleteEventButton) {
+        deleteEventButton.addEventListener("click", function () {
+          if (!editingEventId) {
             return;
           }
 
-          if (!selectedDateObject || Number.isNaN(selectedDateObject.getTime())) {
-            showFormError("Please enter a valid date and time.");
-            return;
-          }
-
-          if (selectedDateObject < now) {
-            showFormError("You cannot create or update an event in the past.");
-            return;
-          }
-
-          saveOrUpdateEvent(eventData);
-          selectedDate = eventData.date;
+          events = events.filter(function (event) {
+            return event.id !== editingEventId;
+          });
           refreshCalendar();
+          persistCalendarData();
           resetEventForm();
-          setFormVisibility(false);
+          setModalVisibility(eventModal, false);
         });
       }
 
-      if (eventModalElement) {
-        eventModalElement.addEventListener("hidden.bs.modal", function () {
-          resetEventForm();
-        });
-      }
+      userProfileList.addEventListener("click", function (clickEvent) {
+        var editButton = clickEvent.target.closest(".profile-edit-button");
+        var deleteButton = clickEvent.target.closest(".profile-delete-button");
+
+        if (editButton) {
+          var profileToEdit = getProfileById(editButton.getAttribute("data-profile-id"));
+          if (profileToEdit) {
+            beginEditProfile(profileToEdit);
+          }
+          return;
+        }
+
+        if (deleteButton) {
+          var profileId = deleteButton.getAttribute("data-profile-id");
+          var hasAssignedEvents = events.some(function (event) {
+            return event.profileId === profileId;
+          });
+
+          if (hasAssignedEvents) {
+            showFormError(userFormError, "You cannot delete a user who still has events assigned.");
+            return;
+          }
+
+          profiles = profiles.filter(function (profile) {
+            return profile.id !== profileId;
+          });
+          delete activeProfileIds[profileId];
+          refreshCalendar();
+          persistCalendarData();
+        }
+      });
 
       selectedDateEvents.addEventListener("click", function (clickEvent) {
         var editButton = clickEvent.target.closest(".event-edit-button");
@@ -465,13 +799,28 @@
         }
 
         if (deleteButton) {
-          deleteEventById(deleteButton.getAttribute("data-event-id"));
+          events = events.filter(function (event) {
+            return event.id !== deleteButton.getAttribute("data-event-id");
+          });
           refreshCalendar();
+          persistCalendarData();
         }
       });
+
+      if (eventModalElement) {
+        eventModalElement.addEventListener("hidden.bs.modal", function () {
+          resetEventForm();
+        });
+      }
+
+      if (userModalElement) {
+        userModalElement.addEventListener("hidden.bs.modal", function () {
+          resetProfileForm();
+        });
+      }
     })
     .catch(function () {
       selectedDateTitle.textContent = "Calendar unavailable";
-      selectedDateEvents.innerHTML = '<p class="text-secondary mb-0">The events file could not be loaded.</p>';
+      selectedDateEvents.innerHTML = '<p class="text-secondary mb-0">The calendar data files could not be loaded.</p>';
     });
 })();

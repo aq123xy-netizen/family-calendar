@@ -1,0 +1,26 @@
+[
+  {
+    "id": "profile-emma",
+    "name": "Emma",
+    "color": "#4285f4",
+    "icon": "bi-person-heart"
+  },
+  {
+    "id": "profile-noah",
+    "name": "Noah",
+    "color": "#34a853",
+    "icon": "bi-person-standing"
+  },
+  {
+    "id": "profile-olivia",
+    "name": "Olivia",
+    "color": "#fbbc05",
+    "icon": "bi-person-hearts"
+  },
+  {
+    "id": "profile-everyone",
+    "name": "Everyone",
+    "color": "#ea4335",
+    "icon": "bi-people-fill"
+  }
+]
