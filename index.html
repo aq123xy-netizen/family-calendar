@@ -10,68 +10,7 @@
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
     crossorigin="anonymous"
   >
-  <style>
-    body {
-      min-height: 100vh;
-      margin: 0;
-      background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.65), transparent 45%),
-        linear-gradient(180deg, #f4efe6 0%, #d6e5ef 100%);
-      color: #1f2933;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .hero {
-      padding: 4rem 0 2rem;
-    }
-
-    .hero-card,
-    .panel-card {
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(38, 70, 83, 0.12);
-      border-radius: 1.25rem;
-      box-shadow: 0 20px 50px rgba(31, 41, 51, 0.1);
-      backdrop-filter: blur(8px);
-    }
-
-    .hero-title {
-      font-size: clamp(2.5rem, 5vw, 4.5rem);
-      line-height: 1;
-      letter-spacing: -0.04em;
-    }
-
-    .eyebrow {
-      display: inline-block;
-      margin-bottom: 1rem;
-      padding: 0.35rem 0.8rem;
-      border-radius: 999px;
-      background: #f0f7f4;
-      color: #2f6f5e;
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .schedule-list li + li {
-      margin-top: 0.75rem;
-    }
-
-    .task-category {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .task-empty {
-      border: 2px dashed rgba(38, 70, 83, 0.2);
-      border-radius: 1rem;
-      padding: 2rem;
-      text-align: center;
-      color: #52606d;
-      background: rgba(255, 255, 255, 0.45);
-    }
-  </style>
+  <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
   <main class="container py-4 py-lg-5">
@@ -87,7 +26,7 @@
             </p>
             <div class="d-flex flex-wrap gap-2">
               <a class="btn btn-dark btn-lg" href="#planner">Open planner</a>
-              <a class="btn btn-outline-dark btn-lg" href="#ideas">See ideas</a>
+              <a class="btn btn-outline-dark btn-lg" href="#calendar-section">Open calendar</a>
             </div>
           </div>
           <div class="col-lg-5">
@@ -159,136 +98,95 @@
       </div>
     </section>
 
-    <section id="ideas" class="pt-4 pt-lg-5">
-      <div class="panel-card p-4">
-        <h2 class="h3 mb-3">Why this setup is easier</h2>
-        <div class="row g-3">
-          <div class="col-md-4">
-            <div class="p-3 border rounded-4 h-100 bg-light">
-              <h3 class="h5">Direct hosting</h3>
-              <p class="mb-0">GitHub Pages can serve this file directly from the repo root.</p>
-            </div>
+    <section id="calendar-section" class="pt-4 pt-lg-5">
+      <div class="panel-card p-4 p-lg-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+          <div>
+            <h2 class="h3 mb-2">Family calendar</h2>
+            <p class="text-secondary mb-0">Monthly view with shared events by person.</p>
           </div>
-          <div class="col-md-4">
-            <div class="p-3 border rounded-4 h-100 bg-light">
-              <h3 class="h5">Easy edits</h3>
-              <p class="mb-0">Update text, styles, or layout in one file without a build command.</p>
-            </div>
+          <div class="calendar-toolbar">
+            <button class="btn btn-dark" id="open-event-form" type="button">Add event</button>
+            <div id="calendar-legend" class="calendar-legend"></div>
           </div>
-          <div class="col-md-4">
-            <div class="p-3 border rounded-4 h-100 bg-light">
-              <h3 class="h5">Still flexible</h3>
-              <p class="mb-0">Bootstrap and jQuery are enough for simple pages and small interactions.</p>
-            </div>
+        </div>
+
+        <div class="calendar-layout">
+          <div class="calendar-shell">
+            <div id="calendar"></div>
           </div>
+
+          <aside class="calendar-sidebar">
+            <div class="calendar-sidebar-card">
+              <p class="calendar-sidebar-label mb-2">Selected date</p>
+              <h3 id="selected-date-title" class="h4 mb-3">Pick a date</h3>
+              <div id="selected-date-events" class="selected-events">
+                <p class="text-secondary mb-0">Tap a day to see who has plans.</p>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </section>
   </main>
+
+  <div class="modal fade" id="event-modal" tabindex="-1" aria-labelledby="event-form-heading" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content event-modal-content">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <h2 class="modal-title h4 mb-1" id="event-form-heading">New calendar event</h2>
+            <p class="text-secondary mb-0" id="event-form-copy">Add an event for one person and it will appear right away.</p>
+          </div>
+          <button type="button" class="btn-close" id="close-event-form" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-3">
+          <form id="calendar-event-form" class="row g-3">
+            <div class="col-12">
+              <div class="alert alert-danger d-none mb-0" id="event-form-error" role="alert"></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="event-title">Title</label>
+              <input class="form-control" id="event-title" type="text" placeholder="Soccer game" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="event-datetime">Date and time</label>
+              <input class="form-control" id="event-datetime" type="datetime-local" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="event-person">Person</label>
+              <input class="form-control" id="event-person" type="text" placeholder="Emma" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="event-color">Color</label>
+              <input class="form-control form-control-color" id="event-color" type="color" value="#4285f4" title="Choose an event color">
+            </div>
+
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-success" id="save-event-button" type="submit">Save event</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script
     src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
     crossorigin="anonymous"
   ></script>
-  <script>
-    $(function () {
-      var storageKey = "family-calendar-tasks";
-
-      function loadTasks() {
-        try {
-          return JSON.parse(localStorage.getItem(storageKey)) || [];
-        } catch (error) {
-          return [];
-        }
-      }
-
-      function saveTasks(tasks) {
-        localStorage.setItem(storageKey, JSON.stringify(tasks));
-      }
-
-      function renderTasks() {
-        var tasks = loadTasks();
-        var $list = $("#task-list");
-        var $empty = $("#task-empty");
-
-        $list.empty();
-
-        if (!tasks.length) {
-          $list.addClass("d-none");
-          $empty.removeClass("d-none");
-          return;
-        }
-
-        $empty.addClass("d-none");
-        $list.removeClass("d-none");
-
-        tasks.forEach(function (task) {
-          var $item = $("<li>").addClass("list-group-item px-0 py-3 bg-transparent");
-          var $row = $("<div>").addClass("d-flex justify-content-between align-items-start gap-3");
-          var $text = $("<div>");
-          var $title = $("<div>").addClass("fw-semibold fs-5").text(task.name);
-          var $category = $("<div>").addClass("task-category text-secondary mt-1").text(task.category);
-          var $remove = $("<button>")
-            .addClass("btn btn-sm btn-outline-secondary")
-            .attr("type", "button")
-            .text("Remove")
-            .on("click", function () {
-              removeTask(task.id);
-            });
-
-          $text.append($title, $category);
-          $row.append($text, $remove);
-          $item.append($row);
-          $list.append($item);
-        });
-      }
-
-      function addTask(name, category) {
-        var tasks = loadTasks();
-
-        tasks.push({
-          id: Date.now(),
-          name: name,
-          category: category
-        });
-
-        saveTasks(tasks);
-        renderTasks();
-      }
-
-      function removeTask(id) {
-        var tasks = loadTasks().filter(function (task) {
-          return task.id !== id;
-        });
-
-        saveTasks(tasks);
-        renderTasks();
-      }
-
-      $("#task-form").on("submit", function (event) {
-        event.preventDefault();
-
-        var name = $("#task-name").val().trim();
-        var category = $("#task-category").val();
-
-        if (!name) {
-          $("#task-name").trigger("focus");
-          return;
-        }
-
-        addTask(name, category);
-        this.reset();
-        $("#task-category").val("Bills");
-      });
-
-      $("#clear-tasks").on("click", function () {
-        localStorage.removeItem(storageKey);
-        renderTasks();
-      });
-
-      renderTasks();
-    });
-  </script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/calendar.js"></script>
 </body>
 </html>

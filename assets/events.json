@@ -1,0 +1,65 @@
+[
+  {
+    "id": "seed-1",
+    "title": "Soccer practice",
+    "date": "2026-05-06",
+    "time": "17:30",
+    "person": "Emma",
+    "color": "#4285f4"
+  },
+  {
+    "id": "seed-2",
+    "title": "Doctor appointment",
+    "date": "2026-05-08",
+    "time": "09:15",
+    "person": "Noah",
+    "color": "#34a853"
+  },
+  {
+    "id": "seed-3",
+    "title": "Parent-teacher meeting",
+    "date": "2026-05-12",
+    "time": "15:45",
+    "person": "Olivia",
+    "color": "#fbbc05"
+  },
+  {
+    "id": "seed-4",
+    "title": "Family movie night",
+    "date": "2026-05-15",
+    "time": "19:00",
+    "person": "Everyone",
+    "color": "#ea4335"
+  },
+  {
+    "id": "seed-5",
+    "title": "Dance recital",
+    "date": "2026-05-18",
+    "time": "18:30",
+    "person": "Emma",
+    "color": "#4285f4"
+  },
+  {
+    "id": "seed-6",
+    "title": "Piano lesson",
+    "date": "2026-05-21",
+    "time": "16:00",
+    "person": "Olivia",
+    "color": "#fbbc05"
+  },
+  {
+    "id": "seed-7",
+    "title": "Birthday dinner",
+    "date": "2026-05-24",
+    "time": "18:00",
+    "person": "Noah",
+    "color": "#34a853"
+  },
+  {
+    "id": "seed-8",
+    "title": "Camping weekend",
+    "date": "2026-05-29",
+    "person": "Everyone",
+    "color": "#ea4335"
+  }
+]
