@@ -6,7 +6,6 @@
   var selectedDateEvents = document.getElementById("selected-date-events");
   var openEventFormButton = document.getElementById("open-event-form");
   var openUserFormButton = document.getElementById("open-user-form");
-  var downloadEventsButton = document.getElementById("download-events-button");
   var downloadProfilesButton = document.getElementById("download-profiles-button");
 
   var eventModalElement = document.getElementById("event-modal");
@@ -587,10 +586,6 @@
         resetProfileForm();
         setModalVisibility(userModal, true);
         profileNameInput.focus();
-      });
-
-      downloadEventsButton.addEventListener("click", function () {
-        downloadJson("events.json", getExportableEvents());
       });
 
       downloadProfilesButton.addEventListener("click", function () {
