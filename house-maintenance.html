@@ -38,25 +38,63 @@
       <div class="hero-card p-4 p-lg-5">
         <span class="module-badge"><i class="bi bi-tools"></i> Home</span>
         <h1 class="hero-title fw-bold mb-3">House Maintenance</h1>
-        <p class="lead mb-0">This page can become the place for repairs, seasonal chores, appliance records, and contractor notes.</p>
+        <p class="lead mb-0">Shared reminders live here and also feed the dashboard on the main calendar screen.</p>
       </div>
     </section>
 
     <section class="page-grid">
       <div class="panel-card page-placeholder">
-        <h2 class="h3 mb-3">Blank workspace</h2>
-        <p class="text-secondary mb-0">We can add maintenance schedules, repair logs, warranty tracking, and a home inventory here later.</p>
+        <h2 class="h3 mb-3">Add reminder</h2>
+        <p class="text-secondary mb-4">Create a new home maintenance reminder for the dashboard and this page.</p>
+        <form id="maintenance-reminder-form" class="row g-3">
+          <div class="col-12">
+            <div class="alert alert-danger d-none mb-0" id="maintenance-form-error" role="alert"></div>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="maintenance-title">Reminder title</label>
+            <input class="form-control" id="maintenance-title" type="text" placeholder="Replace HVAC filter" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="maintenance-due-date">Due date</label>
+            <input class="form-control" id="maintenance-due-date" type="date" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="maintenance-category">Category</label>
+            <select class="form-select" id="maintenance-category" required>
+              <option value="House maintenance">House maintenance</option>
+              <option value="Safety">Safety</option>
+              <option value="Appliances">Appliances</option>
+              <option value="Seasonal">Seasonal</option>
+              <option value="Bills">Bills</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="maintenance-repeat">Repeat</label>
+            <input class="form-control" id="maintenance-repeat" type="text" placeholder="Every 3 months">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="maintenance-reminder">Reminder notice</label>
+            <input class="form-control" id="maintenance-reminder" type="text" placeholder="7 days before">
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button class="btn btn-dark" type="submit">Save reminder</button>
+          </div>
+        </form>
       </div>
 
       <div class="panel-card page-placeholder">
-        <h2 class="h4 mb-3">Ideas for this module</h2>
-        <div class="idea-list">
-          <div class="idea-item">Seasonal checklist for furnace filter, gutters, smoke alarms, and yard work.</div>
-          <div class="idea-item">Home repair tracker with status, cost, and vendor contact info.</div>
-          <div class="idea-item">Appliance inventory with purchase date, manuals, and warranty expiration.</div>
-        </div>
+        <h2 class="h3 mb-3">Upcoming reminders</h2>
+        <p class="text-secondary mb-4">These are the next home tasks coming due.</p>
+        <div id="maintenance-upcoming-list" class="maintenance-list"></div>
+      </div>
+
+      <div class="panel-card page-placeholder">
+        <h2 class="h4 mb-3">Reminder library</h2>
+        <p class="text-secondary mb-4">The dashboard reads from this same maintenance list.</p>
+        <div id="maintenance-library-list" class="maintenance-list"></div>
       </div>
     </section>
   </div>
+  <script src="assets/js/home-maintenance.js"></script>
 </body>
 </html>

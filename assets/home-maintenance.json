@@ -1,0 +1,62 @@
+[
+  {
+    "id": "replace-hvac-filter",
+    "title": "Replace HVAC filter",
+    "category": "House maintenance",
+    "dueDate": "2026-05-10",
+    "repeat": "Every 3 months",
+    "reminder": "7 days before",
+    "source": "home-maintenance",
+    "color": "#0f766e"
+  },
+  {
+    "id": "test-smoke-detectors",
+    "title": "Test smoke/CO detectors",
+    "category": "Safety",
+    "dueDate": "2026-05-14",
+    "repeat": "Monthly",
+    "reminder": "2 days before",
+    "source": "home-maintenance",
+    "color": "#0f766e"
+  },
+  {
+    "id": "clean-dryer-vent",
+    "title": "Clean dryer vent",
+    "category": "Appliances",
+    "dueDate": "2026-05-21",
+    "repeat": "Every 6 months",
+    "reminder": "7 days before",
+    "source": "home-maintenance",
+    "color": "#0f766e"
+  },
+  {
+    "id": "winterize-outdoor-taps",
+    "title": "Winterize outdoor taps",
+    "category": "Seasonal",
+    "dueDate": "2026-10-01",
+    "repeat": "Yearly",
+    "reminder": "14 days before",
+    "source": "home-maintenance",
+    "color": "#0f766e"
+  },
+  {
+    "id": "home-insurance-renewal",
+    "title": "Home insurance renewal",
+    "category": "Bills",
+    "dueDate": "2026-06-01",
+    "repeat": "Yearly",
+    "reminder": "30 days before",
+    "source": "home-maintenance",
+    "color": "#0f766e"
+  },
+  {
+    "id": "mortgage-renewal",
+    "title": "Mortgage renewal",
+    "category": "Bills",
+    "dueDate": "2026-08-15",
+    "repeat": "Every 5 years",
+    "reminder": "60 days before",
+    "source": "home-maintenance",
+    "color": "#0f766e"
+  }
+]

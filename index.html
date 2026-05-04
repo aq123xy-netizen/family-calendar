@@ -35,72 +35,71 @@
     </nav>
 
   <main class="container px-0 py-2 py-lg-3">
-    <section class="hero">
-      <div class="hero-card p-4 p-lg-5">
-        <div class="row align-items-center g-4">
-          <div class="col-lg-7">
-            <span class="eyebrow">Simple Static Site</span>
-            <h1 class="hero-title fw-bold mb-3">Family Calendar</h1>
-            <p class="lead mb-4">
-              A lightweight family planning page built with plain HTML, CSS, jQuery, and Bootstrap.
-              No Node.js, no build step, and easy to update on GitHub Pages.
-            </p>
-            <div class="d-flex flex-wrap gap-2">
-              <a class="btn btn-dark btn-lg" href="#calendar-section">Open calendar</a>
-            </div>
+    <section class="dashboard-header">
+      <div class="panel-card p-4 p-lg-5 dashboard-header-card">
+        <div class="dashboard-header-content">
+          <div>
+            <h1 class="dashboard-title mb-2">Family Calendar</h1>
+            <p class="dashboard-subtitle mb-0">Family plans, reminders, and home maintenance in one place</p>
           </div>
-          <div class="col-lg-5">
-            <div class="panel-card p-4">
-              <h2 class="h4 mb-3">Home maintenance reminders</h2>
-              <ul class="schedule-list list-unstyled mb-0">
-                <li>
-                  <strong>Air filter</strong><br>
-                  Replace the HVAC filter on the first weekend of the month.
-                </li>
-                <li>
-                  <strong>Smoke alarms</strong><br>
-                  Test alarms and check battery levels this week.
-                </li>
-                <li>
-                  <strong>Outdoor check</strong><br>
-                  Walk the yard and inspect gutters, hoses, and exterior lights.
-                </li>
-              </ul>
-            </div>
+          <div class="dashboard-header-actions">
+            <button class="btn btn-dark" id="open-event-form" type="button">Add event</button>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="calendar-section" class="pt-4 pt-lg-5">
-      <div class="panel-card p-4 p-lg-5">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <section id="calendar-section" class="dashboard-main">
+      <div class="calendar-sidebar-card dashboard-today-panel">
+        <div class="dashboard-panel-header">
           <div>
-            <h2 class="h3 mb-2">Family calendar</h2>
-            <p class="text-secondary mb-0">Monthly view with shared events by person.</p>
-          </div>
-          <div class="calendar-toolbar">
-            <button class="btn btn-outline-dark" id="open-user-form" type="button">Manage users</button>
-            <button class="btn btn-dark" id="open-event-form" type="button">Add event</button>
-            <div id="calendar-legend" class="calendar-legend"></div>
+            <h2 class="h4 mb-1">Today</h2>
+            <p class="text-secondary mb-0" id="today-panel-date">Today&apos;s schedule</p>
           </div>
         </div>
+        <div id="today-events" class="dashboard-list"></div>
+      </div>
 
-        <div class="calendar-filter-card mb-4">
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <div>
-              <h3 class="h6 mb-1">Show events for</h3>
-              <p class="text-secondary mb-0">Filter the calendar by user profile.</p>
+      <div class="dashboard-calendar-column">
+        <div class="panel-card p-4 p-lg-5">
+          <div class="calendar-control-bar mb-4">
+            <div class="calendar-control-title">
+              <h2 class="h3 mb-0">Calendar</h2>
+            </div>
+            <div class="calendar-control-filters">
+              <div class="calendar-control-dropdown" id="user-filter-dropdown">
+                <button class="btn btn-outline-dark calendar-control-button" id="user-filter-toggle" type="button" aria-expanded="false" aria-controls="user-filter-menu">Everyone</button>
+                <div class="calendar-control-menu is-hidden" id="user-filter-menu">
+                  <div class="calendar-control-menu-actions">
+                    <button class="btn btn-sm btn-link calendar-filter-action" id="user-filter-select-all" type="button">Select all</button>
+                    <button class="btn btn-sm btn-link calendar-filter-action" id="user-filter-clear" type="button">Clear</button>
+                  </div>
+                  <div id="calendar-filters" class="calendar-filter-menu-list"></div>
+                </div>
+              </div>
+              <button class="btn btn-outline-dark calendar-control-button is-active" id="maintenance-filter-toggle" type="button" aria-pressed="true">Maintenance</button>
+            </div>
+            <div class="calendar-control-actions">
+              <button class="btn btn-outline-dark" id="open-user-form" type="button">Manage users</button>
             </div>
           </div>
-          <div id="calendar-filters" class="calendar-filters"></div>
-        </div>
 
-        <div class="calendar-layout">
-          <div class="calendar-shell">
-            <div id="calendar"></div>
+          <div class="calendar-layout">
+            <div class="calendar-shell">
+              <div id="calendar"></div>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div class="calendar-sidebar-card dashboard-reminders-panel">
+        <div class="dashboard-panel-header">
+          <div>
+            <h2 class="h4 mb-1">Upcoming Reminders</h2>
+            <p class="text-secondary mb-0">Shared with the Home Maintenance page.</p>
+          </div>
+        </div>
+        <div id="upcoming-reminders" class="dashboard-list"></div>
       </div>
     </section>
   </main>
@@ -135,6 +134,17 @@
             <div class="col-md-6">
               <label class="form-label" for="event-person">Person</label>
               <select class="form-select" id="event-person" required></select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="event-category">Category</label>
+              <select class="form-select" id="event-category" required>
+                <option value="Family">Family</option>
+                <option value="School">School</option>
+                <option value="Health">Health</option>
+                <option value="Home">Home</option>
+                <option value="Reminder">Reminder</option>
+              </select>
             </div>
 
             <div class="col-md-6">
@@ -201,6 +211,26 @@
           </div>
           <div class="d-flex justify-content-end mt-4">
             <button class="btn btn-dark" id="download-profiles-button" type="button">Save profile changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="item-details-modal" tabindex="-1" aria-labelledby="item-details-heading" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content event-modal-content">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <h2 class="modal-title h4 mb-1" id="item-details-heading">Item details</h2>
+            <p class="text-secondary mb-0" id="item-details-copy">Review the item information below.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-3">
+          <div id="item-details-body" class="details-list"></div>
+          <div class="d-flex justify-content-end mt-4">
+            <button class="btn btn-outline-dark d-none" id="details-add-button" type="button">Add item for this date</button>
           </div>
         </div>
       </div>

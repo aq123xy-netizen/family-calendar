@@ -1,9 +1,15 @@
 (function () {
   var calendarElement = document.getElementById("calendar");
-  var legendElement = document.getElementById("calendar-legend");
   var filtersElement = document.getElementById("calendar-filters");
-  var selectedDateTitle = document.getElementById("selected-date-title");
-  var selectedDateEvents = document.getElementById("selected-date-events");
+  var userFilterDropdown = document.getElementById("user-filter-dropdown");
+  var userFilterToggleButton = document.getElementById("user-filter-toggle");
+  var userFilterMenu = document.getElementById("user-filter-menu");
+  var userFilterSelectAllButton = document.getElementById("user-filter-select-all");
+  var userFilterClearButton = document.getElementById("user-filter-clear");
+  var maintenanceFilterToggleButton = document.getElementById("maintenance-filter-toggle");
+  var todayPanelDate = document.getElementById("today-panel-date");
+  var todayEventsElement = document.getElementById("today-events");
+  var upcomingRemindersElement = document.getElementById("upcoming-reminders");
   var openEventFormButton = document.getElementById("open-event-form");
   var openUserFormButton = document.getElementById("open-user-form");
   var downloadProfilesButton = document.getElementById("download-profiles-button");
@@ -16,6 +22,7 @@
   var eventTitleInput = document.getElementById("event-title");
   var eventDateTimeInput = document.getElementById("event-datetime");
   var eventPersonInput = document.getElementById("event-person");
+  var eventCategoryInput = document.getElementById("event-category");
   var eventColorSwatch = document.getElementById("event-color-swatch");
   var eventColorLabel = document.getElementById("event-color-label");
   var deleteEventButton = document.getElementById("delete-event-button");
@@ -31,13 +38,22 @@
   var profileIconInput = document.getElementById("profile-icon");
   var saveProfileButton = document.getElementById("save-profile-button");
   var userProfileList = document.getElementById("user-profile-list");
+
+  var detailsModalElement = document.getElementById("item-details-modal");
+  var detailsHeading = document.getElementById("item-details-heading");
+  var detailsCopy = document.getElementById("item-details-copy");
+  var detailsBody = document.getElementById("item-details-body");
+  var detailsAddButton = document.getElementById("details-add-button");
+
   var profilesStorageKey = "family-calendar-profiles";
   var eventsStorageKey = "family-calendar-events";
-
+  var maintenanceStorageKey = "family-calendar-maintenance";
   var editingEventId = null;
   var editingProfileId = null;
   var selectedDate = null;
+  var detailsDate = null;
   var activeProfileIds = {};
+  var showMaintenanceItems = true;
   var colorOptions = ["#4285f4", "#34a853", "#fbbc05", "#ea4335", "#7c3aed", "#0f766e", "#ec4899", "#f97316"];
   var iconOptions = [
     "bi-person-fill",
@@ -53,8 +69,11 @@
     "bi-bookmark-heart-fill",
     "bi-cat"
   ];
+  var reminderColor = "#0f766e";
+
   var eventModal = eventModalElement && window.bootstrap ? new window.bootstrap.Modal(eventModalElement) : null;
   var userModal = userModalElement && window.bootstrap ? new window.bootstrap.Modal(userModalElement) : null;
+  var detailsModal = detailsModalElement && window.bootstrap ? new window.bootstrap.Modal(detailsModalElement) : null;
 
   if (!calendarElement || !window.FullCalendar) {
     return;
@@ -64,6 +83,14 @@
     return new Date(dateString + "T00:00:00").toLocaleDateString(undefined, {
       weekday: "long",
       month: "long",
+      day: "numeric",
+      year: "numeric"
+    });
+  }
+
+  function formatDate(dateString) {
+    return new Date(dateString + "T00:00:00").toLocaleDateString(undefined, {
+      month: "short",
       day: "numeric",
       year: "numeric"
     });
@@ -128,19 +155,6 @@
     modalInstance.hide();
   }
 
-  function downloadJson(filename, data) {
-    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var link = document.createElement("a");
-
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
-
   function loadStoredCollection(storageKey) {
     try {
       var rawValue = localStorage.getItem(storageKey);
@@ -157,6 +171,21 @@
     }
   }
 
+  function sortMaintenanceItems(items) {
+    return items.slice().sort(function (left, right) {
+      return left.dueDate.localeCompare(right.dueDate);
+    });
+  }
+
+  function sortByDateTime(items) {
+    return items.slice().sort(function (left, right) {
+      var leftValue = (left.date || left.dueDate) + "T" + (left.time || "23:59");
+      var rightValue = (right.date || right.dueDate) + "T" + (right.time || "23:59");
+
+      return leftValue.localeCompare(rightValue);
+    });
+  }
+
   Promise.all([
     fetch("assets/events.json").then(function (response) {
       if (!response.ok) {
@@ -171,11 +200,19 @@
       }
 
       return response.json();
+    }),
+    fetch("assets/home-maintenance.json").then(function (response) {
+      if (!response.ok) {
+        throw new Error("Could not load home-maintenance.json");
+      }
+
+      return response.json();
     })
   ])
     .then(function (results) {
       var eventSeeds = loadStoredCollection(eventsStorageKey) || results[0];
       var profileSeeds = loadStoredCollection(profilesStorageKey) || results[1];
+      var maintenanceTasks = sortMaintenanceItems(loadStoredCollection(maintenanceStorageKey) || results[2]);
       var profiles = profileSeeds.map(function (profile, index) {
         return {
           id: profile.id || "profile-seed-" + (index + 1),
@@ -192,7 +229,9 @@
           time: event.time || "",
           profileId: event.profileId || "",
           person: event.person,
-          color: event.color || "#4285f4"
+          color: event.color || "#4285f4",
+          icon: event.icon || "bi-person-fill",
+          category: event.category || "Family"
         };
       });
       var calendar;
@@ -231,7 +270,27 @@
             profileId: matchedProfile ? matchedProfile.id : (event.profileId || ""),
             person: matchedProfile ? matchedProfile.name : event.person,
             color: matchedProfile ? matchedProfile.color : (event.color || "#4285f4"),
-            icon: matchedProfile ? matchedProfile.icon : "bi-person-fill"
+            icon: matchedProfile ? matchedProfile.icon : (event.icon || "bi-person-fill"),
+            category: event.category || "Family"
+          };
+        });
+      }
+
+      function getReminderItems() {
+        return sortMaintenanceItems(maintenanceTasks).map(function (task) {
+          return {
+            id: task.id,
+            title: task.title,
+            date: task.dueDate,
+            dueDate: task.dueDate,
+            time: "",
+            category: task.category || "House maintenance",
+            repeat: task.repeat || "",
+            reminder: task.reminder || "",
+            source: task.source || "home-maintenance",
+            color: task.color || reminderColor,
+            type: "reminder",
+            label: "Reminder due"
           };
         });
       }
@@ -252,14 +311,32 @@
         });
       }
 
-      function getEventsForDate(dateString) {
-        return getVisibleEvents().filter(function (event) {
+      function getCombinedItemsForDate(dateString) {
+        var calendarItems = getVisibleEvents().filter(function (event) {
           return event.date === dateString;
+        }).map(function (event) {
+          return {
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            time: event.time || "",
+            category: event.category || "Family",
+            person: event.person,
+            color: event.color,
+            icon: event.icon || "bi-person-fill",
+            type: "event",
+            label: event.time ? "Scheduled" : "All day"
+          };
         });
+        var reminders = showMaintenanceItems ? getReminderItems().filter(function (item) {
+          return item.date === dateString;
+        }) : [];
+
+        return sortByDateTime(calendarItems.concat(reminders));
       }
 
-      function buildCalendarEvents(sourceEvents) {
-        return sourceEvents.map(function (event) {
+      function buildCalendarEntries() {
+        var eventEntries = getVisibleEvents().map(function (event) {
           return {
             id: event.id,
             title: event.title,
@@ -268,26 +345,37 @@
             backgroundColor: event.color,
             borderColor: event.color,
             extendedProps: {
-              profileId: event.profileId,
+              itemType: "event",
               person: event.person,
+              category: event.category || "Family",
               color: event.color,
               icon: event.icon || "bi-person-fill",
               time: event.time || ""
             }
           };
         });
-      }
+        var reminderEntries = showMaintenanceItems ? getReminderItems().map(function (item) {
+          return {
+            id: item.id,
+            title: item.title,
+            start: item.date,
+            allDay: true,
+            backgroundColor: item.color,
+            borderColor: item.color,
+            extendedProps: {
+              itemType: "reminder",
+              category: item.category,
+              color: item.color,
+              icon: "bi-tools",
+              repeat: item.repeat,
+              reminder: item.reminder,
+              label: item.label,
+              time: ""
+            }
+          };
+        }) : [];
 
-      function renderLegend() {
-        legendElement.innerHTML = profiles.map(function (profile) {
-          return [
-            '<span class="legend-chip">',
-            '<span class="legend-dot" style="background:', profile.color, '"></span>',
-            '<i class="bi ', profile.icon || "bi-person-fill", ' legend-icon"></i>',
-            profile.name,
-            "</span>"
-          ].join("");
-        }).join("");
+        return eventEntries.concat(reminderEntries);
       }
 
       function renderProfileSelect() {
@@ -328,39 +416,121 @@
             "</label>"
           ].join("");
         }).join("");
+
+        updateUserFilterLabel();
       }
 
-      function renderSelectedDate(dateString, dayEvents) {
-        selectedDate = dateString;
-        if (!selectedDateTitle || !selectedDateEvents) {
+      function updateUserFilterLabel() {
+        if (!userFilterToggleButton) {
           return;
         }
 
-        selectedDateTitle.textContent = formatHeading(dateString);
+        var selectedProfiles = profiles.filter(function (profile) {
+          return activeProfileIds[profile.id] !== false;
+        });
+        var selectedCount = selectedProfiles.length;
 
-        if (!dayEvents.length) {
-          selectedDateEvents.innerHTML = '<p class="text-secondary mb-0">No events scheduled for this day.</p>';
+        if (selectedCount === profiles.length) {
+          userFilterToggleButton.textContent = "Everyone";
           return;
         }
 
-        selectedDateEvents.innerHTML = dayEvents.map(function (event) {
+        if (selectedCount === 1) {
+          userFilterToggleButton.textContent = selectedProfiles[0].name;
+          return;
+        }
+
+        userFilterToggleButton.textContent = selectedCount + " people";
+      }
+
+      function setUserFilterMenuExpanded(isExpanded) {
+        if (!userFilterToggleButton || !userFilterMenu) {
+          return;
+        }
+
+        userFilterToggleButton.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+        userFilterMenu.classList.toggle("is-hidden", !isExpanded);
+      }
+
+      function setAllFilters(nextValue) {
+        profiles.forEach(function (profile) {
+          activeProfileIds[profile.id] = nextValue;
+        });
+
+        refreshCalendar();
+      }
+
+      function renderPanelItems(targetElement, items, emptyMessage) {
+        if (!targetElement) {
+          return;
+        }
+
+        if (!items.length) {
+          targetElement.innerHTML = '<div class="dashboard-empty-state">' + emptyMessage + "</div>";
+          return;
+        }
+
+        targetElement.innerHTML = items.map(function (item) {
+          var meta = [];
+
+          meta.push('<span class="dashboard-item-category">' + item.category + "</span>");
+
+          if (item.person) {
+            meta.push('<span class="dashboard-item-meta">' + item.person + "</span>");
+          }
+
+          if (item.time) {
+            meta.push('<span class="dashboard-item-meta">' + formatTime(item.time) + "</span>");
+          }
+
+          if (item.label) {
+            meta.push('<span class="dashboard-item-meta">' + item.label + "</span>");
+          }
+
+          if (item.repeat) {
+            meta.push('<span class="dashboard-item-meta">' + item.repeat + "</span>");
+          }
+
           return [
-            '<div class="selected-event-item" data-event-id="', event.id, '">',
-            '<div class="selected-event-body">',
-            '<span class="selected-event-dot" style="background:', event.color, '"></span>',
-            '<div>',
-            '<div class="selected-event-person"><i class="bi ', event.icon || "bi-person-fill", ' selected-event-icon me-1"></i>', event.person, "</div>",
-            '<div class="selected-event-title">', event.title, "</div>",
-            '<div class="selected-event-time">', formatTime(event.time), "</div>",
-            "</div>",
-            "</div>",
-            '<div class="selected-event-actions">',
-            '<button class="btn btn-sm btn-outline-secondary event-edit-button" type="button" data-event-id="', event.id, '">Edit</button>',
-            '<button class="btn btn-sm btn-outline-danger event-delete-button" type="button" data-event-id="', event.id, '">Delete</button>',
-            "</div>",
-            "</div>"
+            '<button class="dashboard-item" type="button" data-item-id="', item.id, '" data-item-type="', item.type, '">',
+            '<span class="dashboard-item-marker" style="background:', item.color, '"></span>',
+            '<span class="dashboard-item-content">',
+            '<span class="dashboard-item-title">', item.title, "</span>",
+            '<span class="dashboard-item-subtitle">', formatDate(item.date || item.dueDate), "</span>",
+            '<span class="dashboard-item-meta-row">', meta.join(""), "</span>",
+            "</span>",
+            "</button>"
           ].join("");
         }).join("");
+      }
+
+      function renderTodayPanel() {
+        var todayString = new Date().toISOString().slice(0, 10);
+        var todayItems = getCombinedItemsForDate(todayString);
+
+        if (todayPanelDate) {
+          todayPanelDate.textContent = formatHeading(todayString);
+        }
+
+        renderPanelItems(todayEventsElement, todayItems, "No events today.");
+      }
+
+      function renderUpcomingReminders() {
+        var todayString = new Date().toISOString().slice(0, 10);
+        var reminders = showMaintenanceItems ? sortByDateTime(getReminderItems().filter(function (item) {
+          return item.date >= todayString;
+        })).slice(0, 6) : [];
+
+        renderPanelItems(upcomingRemindersElement, reminders, "No upcoming reminders.");
+      }
+
+      function updateMaintenanceToggleState() {
+        if (!maintenanceFilterToggleButton) {
+          return;
+        }
+
+        maintenanceFilterToggleButton.setAttribute("aria-pressed", showMaintenanceItems ? "true" : "false");
+        maintenanceFilterToggleButton.classList.toggle("is-active", showMaintenanceItems);
       }
 
       function renderColorPalette() {
@@ -389,9 +559,13 @@
           eventPersonInput.value = profiles[0].id;
         }
 
-        eventFormHeading.textContent = "New calendar event";
-        eventFormCopy.textContent = "Add an event for one person and it will appear right away.";
-        saveEventButton.textContent = "Save event";
+        if (eventCategoryInput) {
+          eventCategoryInput.value = "Family";
+        }
+
+        eventFormHeading.textContent = "New calendar item";
+        eventFormCopy.textContent = "Add an event and it will appear on the dashboard right away.";
+        saveEventButton.textContent = "Save item";
         updateEventColorPreview();
       }
 
@@ -400,9 +574,10 @@
         eventTitleInput.value = eventData.title;
         eventDateTimeInput.value = buildDateTimeValue(eventData.date, eventData.time);
         eventPersonInput.value = eventData.profileId;
-        eventFormHeading.textContent = "Edit calendar event";
+        eventCategoryInput.value = eventData.category || "Family";
+        eventFormHeading.textContent = "Edit calendar item";
         eventFormCopy.textContent = "Update the details below and save your changes.";
-        saveEventButton.textContent = "Update event";
+        saveEventButton.textContent = "Update item";
         deleteEventButton.classList.remove("d-none");
         updateEventColorPreview();
         setModalVisibility(eventModal, true);
@@ -456,6 +631,12 @@
         }) || null;
       }
 
+      function findReminderById(id) {
+        return maintenanceTasks.find(function (task) {
+          return task.id === id;
+        }) || null;
+      }
+
       function findEventIndexById(id) {
         return events.findIndex(function (event) {
           return event.id === id;
@@ -469,7 +650,8 @@
             title: event.title,
             date: event.date,
             time: event.time || "",
-            profileId: event.profileId
+            profileId: event.profileId,
+            category: event.category || "Family"
           };
         });
       }
@@ -491,20 +673,17 @@
       }
 
       function refreshCalendar() {
-        var visibleEvents = getVisibleEvents();
-
         calendar.removeAllEvents();
-        buildCalendarEvents(visibleEvents).forEach(function (event) {
+        buildCalendarEntries().forEach(function (event) {
           calendar.addEvent(event);
         });
-        renderLegend();
+
         renderFilters();
         renderProfileSelect();
         renderProfileList();
-
-        if (selectedDate) {
-          renderSelectedDate(selectedDate, getEventsForDate(selectedDate));
-        }
+        renderTodayPanel();
+        renderUpcomingReminders();
+        updateMaintenanceToggleState();
       }
 
       function saveProfilesToBrowser() {
@@ -519,6 +698,32 @@
         }
       }
 
+      function openDetailsModalForDate(dateString) {
+        var items = getCombinedItemsForDate(dateString);
+
+        detailsDate = dateString;
+        detailsHeading.textContent = formatHeading(dateString);
+        detailsCopy.textContent = items.length ? "Events and reminders scheduled for this date." : "Nothing is scheduled yet for this date.";
+        detailsAddButton.classList.remove("d-none");
+        renderPanelItems(detailsBody, items, "No items scheduled for this date.");
+        setModalVisibility(detailsModal, true);
+      }
+
+      function openDetailsModalForReminder(reminder) {
+        detailsDate = reminder.dueDate;
+        detailsHeading.textContent = reminder.title;
+        detailsCopy.textContent = "Home maintenance reminder";
+        detailsAddButton.classList.add("d-none");
+        detailsBody.innerHTML = [
+          '<div class="details-list-item"><span class="details-label">Category</span><span class="details-value">', reminder.category || "House maintenance", "</span></div>",
+          '<div class="details-list-item"><span class="details-label">Due date</span><span class="details-value">', formatHeading(reminder.dueDate), "</span></div>",
+          '<div class="details-list-item"><span class="details-label">Repeat</span><span class="details-value">', reminder.repeat || "One-time", "</span></div>",
+          '<div class="details-list-item"><span class="details-label">Reminder</span><span class="details-value">', reminder.reminder || "None", "</span></div>",
+          '<div class="details-list-item"><span class="details-label">Source</span><span class="details-value">Home Maintenance</span></div>'
+        ].join("");
+        setModalVisibility(detailsModal, true);
+      }
+
       calendar = new FullCalendar.Calendar(calendarElement, {
         initialView: "dayGridMonth",
         height: "auto",
@@ -531,10 +736,11 @@
         buttonText: {
           today: "Today"
         },
-        events: buildCalendarEvents(getVisibleEvents()),
+        events: buildCalendarEntries(),
         eventDidMount: function (info) {
+          var descriptor = info.event.extendedProps.itemType === "reminder" ? "Reminder" : info.event.extendedProps.category;
           var timeText = info.event.extendedProps.time ? formatTime(info.event.extendedProps.time) + " - " : "";
-          var fullText = timeText + info.event.title + " (" + info.event.extendedProps.person + ")";
+          var fullText = timeText + info.event.title + " (" + descriptor + ")";
 
           info.el.setAttribute("title", fullText);
           info.el.style.backgroundColor = info.event.backgroundColor;
@@ -543,14 +749,23 @@
         },
         dayMaxEventRows: 3,
         dateClick: function (info) {
+          selectedDate = info.dateStr;
           eventDateTimeInput.value = buildDateTimeValue(info.dateStr, "");
-          renderSelectedDate(info.dateStr, getEventsForDate(info.dateStr));
+          openDetailsModalForDate(info.dateStr);
         },
         eventClick: function (info) {
-          var clickedDate = info.event.startStr.slice(0, 10);
-          var clickedEvent = findEventById(info.event.id);
+          var itemType = info.event.extendedProps.itemType;
 
-          renderSelectedDate(clickedDate, getEventsForDate(clickedDate));
+          if (itemType === "reminder") {
+            var reminder = findReminderById(info.event.id);
+
+            if (reminder) {
+              openDetailsModalForReminder(reminder);
+            }
+            return;
+          }
+
+          var clickedEvent = findEventById(info.event.id);
 
           if (clickedEvent) {
             beginEditEvent(clickedEvent);
@@ -559,22 +774,19 @@
       });
 
       calendar.render();
+      selectedDate = new Date().toISOString().slice(0, 10);
 
-      var initialEvents = getVisibleEvents();
-      var todayString = new Date().toISOString().slice(0, 10);
-      var initialDate = initialEvents.some(function (event) {
-        return event.date === todayString;
-      }) ? todayString : (initialEvents[0] ? initialEvents[0].date : todayString);
-
-      renderLegend();
       renderFilters();
       renderProfileSelect();
       renderProfileList();
       renderColorPalette();
       renderIconPicker();
-      renderSelectedDate(initialDate, getEventsForDate(initialDate));
+      renderTodayPanel();
+      renderUpcomingReminders();
       resetEventForm();
       resetProfileForm();
+      setUserFilterMenuExpanded(false);
+      updateMaintenanceToggleState();
 
       openEventFormButton.addEventListener("click", function () {
         resetEventForm();
@@ -588,9 +800,52 @@
         profileNameInput.focus();
       });
 
-      downloadProfilesButton.addEventListener("click", function () {
-        saveProfilesToBrowser();
-      });
+      if (downloadProfilesButton) {
+        downloadProfilesButton.addEventListener("click", function () {
+          saveProfilesToBrowser();
+        });
+      }
+
+      if (userFilterToggleButton) {
+        userFilterToggleButton.addEventListener("click", function () {
+          var isExpanded = userFilterToggleButton.getAttribute("aria-expanded") === "true";
+          setUserFilterMenuExpanded(!isExpanded);
+        });
+      }
+
+      if (userFilterSelectAllButton) {
+        userFilterSelectAllButton.addEventListener("click", function () {
+          setAllFilters(true);
+        });
+      }
+
+      if (userFilterClearButton) {
+        userFilterClearButton.addEventListener("click", function () {
+          setAllFilters(false);
+        });
+      }
+
+      if (maintenanceFilterToggleButton) {
+        maintenanceFilterToggleButton.addEventListener("click", function () {
+          showMaintenanceItems = !showMaintenanceItems;
+          refreshCalendar();
+        });
+      }
+
+      if (detailsAddButton) {
+        detailsAddButton.addEventListener("click", function () {
+          if (!detailsDate) {
+            return;
+          }
+
+          selectedDate = detailsDate;
+          resetEventForm();
+          eventDateTimeInput.value = buildDateTimeValue(detailsDate, "");
+          setModalVisibility(detailsModal, false);
+          setModalVisibility(eventModal, true);
+          eventTitleInput.focus();
+        });
+      }
 
       eventPersonInput.addEventListener("change", updateEventColorPreview);
 
@@ -627,6 +882,55 @@
         refreshCalendar();
       });
 
+      document.addEventListener("click", function (clickEvent) {
+        if (!userFilterDropdown) {
+          return;
+        }
+
+        if (!userFilterDropdown.contains(clickEvent.target)) {
+          setUserFilterMenuExpanded(false);
+        }
+      });
+
+      function handleDashboardItemClick(clickEvent) {
+        var itemButton = clickEvent.target.closest(".dashboard-item");
+
+        if (!itemButton) {
+          return;
+        }
+
+        var itemType = itemButton.getAttribute("data-item-type");
+        var itemId = itemButton.getAttribute("data-item-id");
+
+        if (itemType === "reminder") {
+          var reminder = findReminderById(itemId);
+
+          if (reminder) {
+            openDetailsModalForReminder(reminder);
+          }
+
+          return;
+        }
+
+        var eventToEdit = findEventById(itemId);
+
+        if (eventToEdit) {
+          beginEditEvent(eventToEdit);
+        }
+      }
+
+      if (todayEventsElement) {
+        todayEventsElement.addEventListener("click", handleDashboardItemClick);
+      }
+
+      if (upcomingRemindersElement) {
+        upcomingRemindersElement.addEventListener("click", handleDashboardItemClick);
+      }
+
+      if (detailsBody) {
+        detailsBody.addEventListener("click", handleDashboardItemClick);
+      }
+
       eventForm.addEventListener("submit", function (submitEvent) {
         submitEvent.preventDefault();
         hideFormError(eventFormError);
@@ -634,7 +938,6 @@
         var selectedProfile = getProfileById(eventPersonInput.value);
         var selectedDateTime = eventDateTimeInput.value;
         var selectedDateObject = selectedDateTime ? new Date(selectedDateTime) : null;
-        var now = new Date();
         var dateParts = splitDateTimeValue(selectedDateTime);
 
         if (!selectedProfile) {
@@ -647,11 +950,6 @@
           return;
         }
 
-        if (selectedDateObject < now) {
-          showFormError(eventFormError, "You cannot create or update an event in the past.");
-          return;
-        }
-
         var eventData = {
           id: editingEventId || makeId("event"),
           title: eventTitleInput.value.trim(),
@@ -660,11 +958,12 @@
           profileId: selectedProfile.id,
           person: selectedProfile.name,
           color: selectedProfile.color,
-          icon: selectedProfile.icon || "bi-person-fill"
+          icon: selectedProfile.icon || "bi-person-fill",
+          category: eventCategoryInput.value || "Family"
         };
 
         if (!eventData.title || !eventData.date) {
-          showFormError(eventFormError, "Please complete the event title and date.");
+          showFormError(eventFormError, "Please complete the item title and date.");
           return;
         }
 
@@ -781,27 +1080,6 @@
         }
       });
 
-      selectedDateEvents.addEventListener("click", function (clickEvent) {
-        var editButton = clickEvent.target.closest(".event-edit-button");
-        var deleteButton = clickEvent.target.closest(".event-delete-button");
-
-        if (editButton) {
-          var eventToEdit = findEventById(editButton.getAttribute("data-event-id"));
-          if (eventToEdit) {
-            beginEditEvent(eventToEdit);
-          }
-          return;
-        }
-
-        if (deleteButton) {
-          events = events.filter(function (event) {
-            return event.id !== deleteButton.getAttribute("data-event-id");
-          });
-          refreshCalendar();
-          persistCalendarData();
-        }
-      });
-
       if (eventModalElement) {
         eventModalElement.addEventListener("hidden.bs.modal", function () {
           resetEventForm();
@@ -815,7 +1093,16 @@
       }
     })
     .catch(function () {
-      selectedDateTitle.textContent = "Calendar unavailable";
-      selectedDateEvents.innerHTML = '<p class="text-secondary mb-0">The calendar data files could not be loaded.</p>';
+      if (todayPanelDate) {
+        todayPanelDate.textContent = "Dashboard unavailable";
+      }
+
+      if (todayEventsElement) {
+        todayEventsElement.innerHTML = '<div class="dashboard-empty-state">The dashboard data files could not be loaded.</div>';
+      }
+
+      if (upcomingRemindersElement) {
+        upcomingRemindersElement.innerHTML = '<div class="dashboard-empty-state">The reminder data files could not be loaded.</div>';
+      }
     });
 })();
