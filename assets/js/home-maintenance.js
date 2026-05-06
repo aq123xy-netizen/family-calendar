@@ -1,5 +1,5 @@
 (function () {
-  var storageKey = "family-calendar-maintenance";
+  var dataApi = window.familyCalendarData;
   var form = document.getElementById("maintenance-reminder-form");
   var formError = document.getElementById("maintenance-form-error");
   var titleInput = document.getElementById("maintenance-title");
@@ -11,7 +11,7 @@
   var libraryElement = document.getElementById("maintenance-library-list");
   var maintenanceItems = [];
 
-  if (!upcomingElement || !libraryElement || !form) {
+  if (!dataApi || !upcomingElement || !libraryElement || !form) {
     return;
   }
 
@@ -31,30 +31,6 @@
   function showFormError(message) {
     formError.textContent = message;
     formError.classList.remove("d-none");
-  }
-
-  function loadStoredCollection() {
-    try {
-      var rawValue = localStorage.getItem(storageKey);
-
-      if (!rawValue) {
-        return null;
-      }
-
-      var parsedValue = JSON.parse(rawValue);
-
-      return Array.isArray(parsedValue) ? parsedValue : null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function saveItems() {
-    localStorage.setItem(storageKey, JSON.stringify(maintenanceItems));
-  }
-
-  function makeId(prefix) {
-    return prefix + "-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
   }
 
   function sortItems(items) {
@@ -97,24 +73,31 @@
     renderList(libraryElement, sortedItems, "No maintenance items yet.");
   }
 
-  fetch("assets/home-maintenance.json")
-    .then(function (response) {
-      if (!response.ok) {
-        throw new Error("Could not load home-maintenance.json");
-      }
+  async function loadReminders() {
+    var reminderRows = await dataApi.fetchMaintenanceReminders();
 
-      return response.json();
-    })
-    .then(function (items) {
-      maintenanceItems = loadStoredCollection() || items;
-      renderPage();
-    })
-    .catch(function () {
-      renderList(upcomingElement, [], "The reminder data could not be loaded.");
-      renderList(libraryElement, [], "The reminder data could not be loaded.");
+    maintenanceItems = reminderRows.map(function (item) {
+      return {
+        id: item.id,
+        title: item.title,
+        category: item.category || "House maintenance",
+        dueDate: item.due_date,
+        repeat: item.repeat_rule || "",
+        reminder: item.reminder_notice || "",
+        color: item.color || "#0f766e"
+      };
     });
 
-  form.addEventListener("submit", function (event) {
+    renderPage();
+  }
+
+  loadReminders().catch(function (error) {
+    var message = error && error.message ? error.message : "The reminder data could not be loaded.";
+    renderList(upcomingElement, [], message);
+    renderList(libraryElement, [], message);
+  });
+
+  form.addEventListener("submit", async function (event) {
     event.preventDefault();
     hideFormError();
 
@@ -137,20 +120,21 @@
       return;
     }
 
-    maintenanceItems.push({
-      id: makeId("maintenance"),
-      title: title,
-      category: category,
-      dueDate: dueDate,
-      repeat: repeatInput.value.trim() || "One-time",
-      reminder: reminderInput.value.trim() || "No reminder",
-      source: "home-maintenance",
-      color: "#0f766e"
-    });
+    try {
+      await dataApi.createMaintenanceReminder({
+        title: title,
+        category: category,
+        dueDate: dueDate,
+        repeat: repeatInput.value.trim(),
+        reminder: reminderInput.value.trim(),
+        color: "#0f766e"
+      });
 
-    saveItems();
-    renderPage();
-    form.reset();
-    categoryInput.value = "House maintenance";
+      await loadReminders();
+      form.reset();
+      categoryInput.value = "House maintenance";
+    } catch (error) {
+      showFormError(error && error.message ? error.message : "Could not save the reminder.");
+    }
   });
 })();

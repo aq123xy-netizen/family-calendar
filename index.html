@@ -14,9 +14,9 @@
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
   >
-  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260504">
 </head>
-<body>
+<body data-requires-auth="true">
   <div class="site-shell">
     <nav class="site-nav">
       <a class="site-brand" href="index.html">
@@ -32,6 +32,7 @@
         <a class="site-link" href="spendings.html">Spendings</a>
         <a class="site-link" href="passwords.html">Password Manager</a>
       </div>
+      <div class="site-auth" id="site-auth"></div>
     </nav>
 
   <main class="container px-0 py-2 py-lg-3">
@@ -209,9 +210,6 @@
             <h3 class="h6 mb-3">Current users</h3>
             <div id="user-profile-list" class="user-profile-list"></div>
           </div>
-          <div class="d-flex justify-content-end mt-4">
-            <button class="btn btn-dark" id="download-profiles-button" type="button">Save profile changes</button>
-          </div>
         </div>
       </div>
     </div>
@@ -247,7 +245,11 @@
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"
   ></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-config.js?v=20260504"></script>
+  <script src="assets/js/supabase-auth.js?v=20260504"></script>
+  <script src="assets/js/supabase-data.js?v=20260506"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-  <script src="assets/js/calendar.js"></script>
+  <script src="assets/js/calendar.js?v=20260506"></script>
 </body>
 </html>

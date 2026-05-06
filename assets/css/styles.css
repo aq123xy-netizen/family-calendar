@@ -66,6 +66,27 @@ body {
   gap: 0.55rem;
 }
 
+.site-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.25rem;
+}
+
+.site-auth-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.site-auth-email,
+.site-auth-note {
+  color: #52606d;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
 .site-link {
   padding: 0.65rem 0.95rem;
   border-radius: 999px;
@@ -128,6 +149,27 @@ body {
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.login-shell {
+  width: min(100%, 32rem);
+}
+
+.login-card {
+  width: 100%;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .idea-list {
@@ -818,6 +860,11 @@ body {
 
   .site-links {
     width: 100%;
+  }
+
+  .site-auth {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .site-link {
